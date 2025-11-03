@@ -1,0 +1,19 @@
+{
+  "kind": "singleType",
+  "collectionName": "site_settings",
+  "info": {
+    "singularName": "site-setting",
+    "pluralName": "site-settings",
+    "displayName": "Site Setting"
+  },
+  "pluginOptions": { "i18n": { "localized": true } },
+  "options": { "draftAndPublish": false },
+  "attributes": {
+    "siteName": { "type": "string" },
+    "logoUrl": { "type": "string" },
+    "primaryColor": { "type": "string" },
+    "secondaryColor": { "type": "string" }
+  }
+}
+
+

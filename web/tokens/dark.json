@@ -1,0 +1,16 @@
+{
+  "colors": {
+    "background": "#0a0a0a",
+    "foreground": "#f1f5f9",
+    "primary": "#22d3ee",
+    "secondary": "#a78bfa",
+    "muted": "#94a3b8"
+  },
+  "fontFamily": {
+    "sans": "Inter, ui-sans-serif, system-ui, sans-serif"
+  },
+  "radius": {
+    "base": "12px"
+  }
+}
+

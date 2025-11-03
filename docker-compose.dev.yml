@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lyr_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-strapi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strapi}
+      POSTGRES_DB: ${POSTGRES_DB:-strapi}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  cms:
+    build:
+      context: ./cms
+      dockerfile: Dockerfile.dev
+    container_name: lyr_cms
+    depends_on:
+      - db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1337"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: db
+      DATABASE_PORT: ${POSTGRES_PORT:-5432}
+      DATABASE_NAME: ${POSTGRES_DB:-strapi}
+      DATABASE_USERNAME: ${POSTGRES_USER:-strapi}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strapi}
+      APP_KEYS: ${APP_KEYS}
+      API_TOKEN_SALT: ${API_TOKEN_SALT}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      NODE_ENV: development
+      HOST: ${STRAPI_HOST:-0.0.0.0}
+      PORT: ${STRAPI_PORT:-1337}
+    ports:
+      - "1337:1337"
+    volumes:
+      - cms-data:/srv/app
+      - ./cms/src:/srv/app/src
+      - cms-uploads:/srv/app/public/uploads
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    container_name: lyr_web
+    depends_on:
+      cms:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_CMS_URL: http://localhost:1337
+      CMS_INTERNAL_URL: http://cms:1337
+      NEXT_PUBLIC_SITE_NAME: ${NEXT_PUBLIC_SITE_NAME:-LYR}
+      STRAPI_API_TOKEN: ${STRAPI_API_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+
+volumes:
+  db-data:
+  cms-uploads:
+  cms-data:

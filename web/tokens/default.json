@@ -1,0 +1,15 @@
+{
+  "colors": {
+    "background": "#0f1115",
+    "foreground": "#f3f5f7",
+    "primary": "#5D5FEF",
+    "secondary": "#00E0FF",
+    "muted": "#9aa0a6"
+  },
+  "fontFamily": {
+    "sans": "Space Grotesk, Inter, ui-sans-serif, system-ui, sans-serif"
+  },
+  "radius": {
+    "base": "12px"
+  }
+}

@@ -1,0 +1,27 @@
+# Node
+node_modules/
+.npm/
+.pnpm-store/
+
+# Next.js
+.next/
+.out/
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.*
+!.env.example
+
+# MacOS
+.DS_Store
+
+# Strapi runtime
+cms/.cache/
+cms/build/
+cms/public/uploads/

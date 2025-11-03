@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1024 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lyrGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F7BFF"/>
+      <stop offset="60%" stop-color="#00FFF5"/>
+      <stop offset="100%" stop-color="#C55BFF"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(64,24)">
+    <g transform="translate(0,0)" fill="none" stroke="url(#lyrGradient)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M64 32 L64 192 L224 192"/>
+      <path d="M64 32 L224 192" opacity="0.25"/>
+      <circle cx="64" cy="32" r="24" fill="url(#lyrGradient)" stroke="none"/>
+      <circle cx="64" cy="192" r="24" fill="url(#lyrGradient)" stroke="none"/>
+      <circle cx="224" cy="192" r="24" fill="url(#lyrGradient)" stroke="none"/>
+    </g>
+    <g transform="translate(280,38)">
+      <text x="0" y="0" font-family="Space Grotesk, Inter, system-ui, sans-serif" font-weight="700" font-size="96" fill="#F4F4F8" dominant-baseline="hanging" letter-spacing="0.5px">LYR</text>
+      <text x="225" y="0" font-family="Space Grotesk, Inter, system-ui, sans-serif" font-weight="500" font-size="96" fill="url(#lyrGradient)" dominant-baseline="hanging" letter-spacing="1px">.io</text>
+    </g>
+  </g>
+</svg>
+
+
