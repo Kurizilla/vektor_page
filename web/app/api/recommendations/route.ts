@@ -5,11 +5,41 @@ export const dynamic = 'force-dynamic';
 
 type Rec = { title: string; description?: string; reason?: string; technologies?: any; score?: number; decision?: 'recommended'|'partial'|'not'; bullets?: string[] };
 
+// Text utils: normalize to be case/diacritic-insensitive
+function normalize(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+// Domain synonyms to improve matching (español)
+const SYNONYMS: Record<string, string[]> = {
+  agentes: ['agente', 'multiagente', 'multi-agente', 'a2a', 'mcp', 'orquestacion de agentes', 'agents'],
+  automatizacion: ['automatizacion', 'automatizada', 'workflow', 'rpa', 'orquestacion', 'automatizacion de procesos'],
+  salud: ['salud', 'sanitario', 'clinico', 'clinica', 'hospital', 'fhir', 'ehr', 'paciente', 'hl7'],
+  trazabilidad: ['trazabilidad', 'trazable', 'auditabilidad', 'auditoria', 'kpi', 'telemetria'],
+  blockchain: ['blockchain', 'onchain', 'on-chain', 'ledger', 'hyperledger', 'evm', 'solana']
+};
+
+function expandTokens(tokens: string[]): string[] {
+  const bag = new Set<string>();
+  for (const t of tokens) {
+    const nt = normalize(t);
+    bag.add(nt);
+    const syns = SYNONYMS[nt];
+    if (syns) syns.forEach((s) => bag.add(normalize(s)));
+  }
+  return Array.from(bag);
+}
+
 function computeVerdict(industry: string | undefined, painPoints: unknown, recs: Rec[]) {
   const recommended = recs.filter(r => r.decision === 'recommended').length;
   const partial = recs.filter(r => r.decision === 'partial').length;
+  const maxScore = Math.max(0, ...recs.map(r => r.score ?? 0));
   const pains = Array.isArray(painPoints) ? painPoints.join(', ') : (painPoints || '');
-  if (recommended >= 1 || (recommended + partial) >= 2) {
+  // Más permisivo: si hay al menos una parcial o max score ≥ 55, consideramos fit inicial
+  if (recommended >= 1 || partial >= 1 || maxScore >= 55 || (recommended + partial) >= 2) {
     return {
       type: 'fit' as const,
       title: `Podemos ayudarte en ${industry || 'tu industria'}`,
@@ -86,7 +116,8 @@ async function rewriteRecommendations(
 export async function POST(req: NextRequest) {
   try {
     const { industry, painPoints, maxResults = 3, timeoutMs: timeoutFromBody, model: modelFromBody, includeReasoning = false } = await req.json();
-    const text = `${industry || ''} ${Array.isArray(painPoints) ? painPoints.join(' ') : painPoints || ''}`.toLowerCase();
+    const textRaw = `${industry || ''} ${Array.isArray(painPoints) ? painPoints.join(' ') : painPoints || ''}`;
+    const text = normalize(textRaw);
     const debug = process.env.DEBUG_RECS === '1';
     if (debug) console.log('[recs] payload', { industry, painPoints, maxResults });
     const timeoutMs = Math.max(5000, Math.min(Number(timeoutFromBody) || 30000, 120000));
@@ -96,9 +127,9 @@ export async function POST(req: NextRequest) {
     const cases = await getCases();
     const retrieveMs = Date.now() - tRetrieve;
     const scored = cases.map((c) => {
-      const haystack = `${c.title} ${c.description} ${(c.technologies || [])
+      const haystack = normalize(`${c.title} ${c.description} ${(c.technologies || [])
         .map((t: any) => (typeof t === 'string' ? t : t.name))
-        .join(' ')}`.toLowerCase();
+        .join(' ')}`);
       const score = text
         .split(/[^a-z0-9áéíóúüñ]+/i)
         .filter(Boolean)
@@ -113,14 +144,20 @@ export async function POST(req: NextRequest) {
     }));
 
     // Helper de compatibilidad
-    const pains = (Array.isArray(painPoints) ? painPoints.join(' ') : (painPoints || '')).toLowerCase();
-    const toTokens = (str: string) => str.split(/[^a-z0-9áéíóúüñ]+/i).filter(Boolean);
+    const pains = normalize(Array.isArray(painPoints) ? painPoints.join(' ') : (painPoints || ''));
+    const ind = normalize(industry || '');
+    const toTokens = (str: string) => str.split(/[^a-z0-9áéíóúüñ]+/i).filter(Boolean).map(normalize);
     function evaluate(item: { title: string; description?: string | null; technologies?: any[] | null }) {
-      const techTokens = (item.technologies || []).map((t: any) => (typeof t === 'string' ? t : t?.name || '')).join(' ').toLowerCase();
-      const pool = `${item.title} ${item.description || ''} ${techTokens}`.toLowerCase();
-      const ptoks = toTokens(pains);
-      const matches = ptoks.reduce((acc, t) => acc + (pool.includes(t) ? 1 : 0), 0);
-      const score = Math.max(0, Math.min(100, Math.round((matches / Math.max(3, ptoks.length)) * 100)));
+      const techTokens = normalize((item.technologies || []).map((t: any) => (typeof t === 'string' ? t : t?.name || '')).join(' '));
+      const pool = normalize(`${item.title} ${item.description || ''} ${techTokens}`);
+      const ptoks = toTokens(`${pains} ${ind}`);
+      const expanded = expandTokens(ptoks);
+      const matches = expanded.reduce((acc, t) => acc + (pool.includes(t) ? 1 : 0), 0);
+      // Ponderamos un poco más tokens de industria si aparecen en el pool
+      const indHits = expandTokens(toTokens(ind)).reduce((acc, t) => acc + (pool.includes(t) ? 1 : 0), 0);
+      const raw = matches + indHits;
+      const denom = Math.max(4, expanded.length + (ind ? 1 : 0));
+      const score = Math.max(0, Math.min(100, Math.round((raw / denom) * 100)));
       const decision = score >= 70 ? 'recommended' : score >= 40 ? 'partial' : 'not';
       const bullets = [
         `Compatibilidad: ${score}% (${decision})`,

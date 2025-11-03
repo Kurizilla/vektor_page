@@ -1,14 +1,36 @@
-FROM node:20-alpine
+FROM node:20-bullseye-slim
 
+ENV STRAPI_TELEMETRY_DISABLED=1 \
+    CI=1
+
+WORKDIR /opt
+
+# Build deps for sharp and native modules
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends bash python3 make g++ git curl ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create a Strapi app template at build time (non-interactive, pinned CLI)
+RUN yes n | npx create-strapi-app@5.28.0 /opt/strapi-template \
+    --skip-cloud \
+    --typescript \
+    --quickstart \
+    --no-run
+
+# Verify template exists and archive it as a fallback
+RUN ls -la /opt && ls -la /opt/strapi-template && \
+    test -f /opt/strapi-template/package.json && \
+    tar -C /opt/strapi-template -czf /opt/strapi-template.tgz .
+
+# Runtime working dir and entrypoint
 WORKDIR /srv
-RUN apk add --no-cache bash python3 make g++ libc6-compat curl
-
 COPY docker-entrypoint.sh /usr/local/bin/strapi-entrypoint
 RUN chmod +x /usr/local/bin/strapi-entrypoint
 
-ENV APP_DIR=/srv/app
-EXPOSE 1337
+ENV PATH="/srv/app/node_modules/.bin:${PATH}" \
+    APP_DIR=/srv/app
 
+EXPOSE 1337
 ENTRYPOINT ["strapi-entrypoint"]
 CMD ["develop"]
 

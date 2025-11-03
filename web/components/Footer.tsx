@@ -7,6 +7,14 @@ export function Footer() {
           <span>· © {new Date().getFullYear()}</span>
         </div>
         <nav className="flex items-center gap-4 text-sm text-muted">
+          <a href="/como-trabajamos" className="hover:text-foreground">cómo trabajamos</a>
+          <a href="/inteligencia" className="hover:text-foreground">inteligencia visible</a>
+          <a
+            href="/capacidades"
+            className="rounded-xl border px-3 py-1 text-foreground/80 hover:bg-foreground hover:text-background transition-colors"
+          >
+            quiénes somos
+          </a>
           <a href="mailto:contacto@lyr.io" className="hover:text-foreground">Email</a>
           <a href="#" className="hover:text-foreground">LinkedIn</a>
           <a href="#" className="hover:text-foreground">Privacidad</a>
